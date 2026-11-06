@@ -1,12 +1,18 @@
 package com.rpg.entities;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Agregacion: el gremio guarda referencias a personajes que existen por su cuenta. */
-// TALLER ARCHIVOS: candidata a Serializable (guarda la lista de Personaje, que tambien debe serlo).
-public class Gremio {
+/**
+ * Agregacion: el gremio guarda referencias a personajes que existen por su cuenta.
+ * Implementa Serializable para persistir la comunidad de heroes.
+ * La serializacion de Java maneja adecuadamente las referencias ciclicas (Gremio <-> Personaje).
+ */
+public class Gremio implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final String nombre;
     private final List<Personaje> miembros = new ArrayList<>();
@@ -40,5 +46,16 @@ public class Gremio {
 
     public List<Personaje> getMiembros() {
         return Collections.unmodifiableList(miembros);
+    }
+
+    public void restaurar(Gremio otro) {
+        if (otro == null) {
+            return;
+        }
+        this.miembros.clear();
+        List<Personaje> lista = new ArrayList<>(otro.getMiembros());
+        for (Personaje p : lista) {
+            agregarMiembro(p);
+        }
     }
 }

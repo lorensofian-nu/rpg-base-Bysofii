@@ -7,6 +7,9 @@ import com.rpg.exceptions.SinManaException;
 import com.rpg.items.Inventario;
 import com.rpg.items.Pocion;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,11 +21,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
-// TALLER ARCHIVOS: para guardar la partida con ObjectOutputStream, Personaje debe volverse Serializable
-// (con serialVersionUID). Piensa que campos son transient y que clases anidadas (Inventario, Pocion, Arma,
-// Gremio, EstadoEfecto, enums) tambien deben ser Serializable, o tendras NotSerializableException.
-// Ojo: Gremio y Personaje se referencian entre si (la serializacion maneja el ciclo).
-public abstract class Personaje implements ICombatiente {
+/**
+ * Clase base abstracta para los combatientes del juego.
+ * Implementa Serializable para persistir la partida en disco.
+ * 
+ * USO DE serialVersionUID:
+ * serialVersionUID es un identificador unico de version para clases serializables.
+ * Sirve para asegurar que la clase que cargo el objeto en memoria sea exactamente compatible
+ * con la version de la clase que lo serializo a disco. Si no coincide, la JVM lanza InvalidClassException.
+ *
+ * USO DE transient:
+ * Los campos 'lock' y 'hilosEfectos' son 'transient' porque los cerrojos y los hilos en ejecucion
+ * no son serializables y no deben persistirse en disco.
+ * El campo 'sesionCombateTemporal' tambien es 'transient' para demostrar que datos volatiles
+ * retornan a su valor por defecto (null) tras la deserializacion.
+ */
+public abstract class Personaje implements ICombatiente, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private static final int VIDA_BASE = 100;
     private static final int ATAQUE_BASE = 10;
@@ -44,10 +60,12 @@ public abstract class Personaje implements ICombatiente {
     private final Inventario<Pocion> inventario = new Inventario<>(CAPACIDAD_INVENTARIO); // composicion
     private final Set<String> habilidades = new HashSet<>();
     private final Map<String, EstadoEfecto> efectos = new LinkedHashMap<>();
-    // Hilos dedicados a cada efecto continuo activo
-    private final Map<String, Thread> hilosEfectos = new LinkedHashMap<>();
-    // Cerrojo de exclusion mutua para proteger secciones criticas de vida y estado
-    private final ReentrantLock lock = new ReentrantLock();
+    // Hilos dedicados a cada efecto continuo activo (transient: los hilos no se serializan)
+    private transient Map<String, Thread> hilosEfectos = new LinkedHashMap<>();
+    // Cerrojo de exclusion mutua (transient: se reinicializa en readObject)
+    private transient ReentrantLock lock = new ReentrantLock();
+    // Campo transient para comprobar que no se guarda en disco y vuelve a su valor por defecto al cargar
+    private transient String sesionCombateTemporal;
 
     protected Personaje(String nombre, TipoPersonaje tipo) {
         this(nombre, tipo, VIDA_BASE, ATAQUE_BASE, DEFENSA_BASE);
@@ -486,5 +504,22 @@ public abstract class Personaje implements ICombatiente {
         } finally {
             lock.unlock();
         }
+    }
+
+    public String getSesionCombateTemporal() {
+        return sesionCombateTemporal;
+    }
+
+    public void setSesionCombateTemporal(String sesionCombateTemporal) {
+        this.sesionCombateTemporal = sesionCombateTemporal;
+    }
+
+    /**
+     * Hook de deserializacion: reinicializa cerrojos y colecciones transitorias.
+     */
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        this.lock = new ReentrantLock();
+        this.hilosEfectos = new LinkedHashMap<>();
     }
 }

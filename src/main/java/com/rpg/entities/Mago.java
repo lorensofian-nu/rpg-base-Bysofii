@@ -7,6 +7,8 @@ import com.rpg.exceptions.SinManaException;
 
 public class Mago extends Personaje {
 
+    private static final long serialVersionUID = 1L;
+
     private static final int VIDA = 80;
     private static final int ATAQUE = 14;
     private static final int DEFENSA = 3;
