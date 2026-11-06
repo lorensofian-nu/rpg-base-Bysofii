@@ -1,6 +1,8 @@
 /**
- * Paquete reservado para el taller de manejo de archivos.
- * Aqui crearas tus clases de persistencia (por ejemplo para guardar y leer el log de combate en texto,
- * y para guardar y cargar la partida con serializacion).
+ * Paquete para el taller de manejo de archivos y persistencia del RPG.
+ * Contiene:
+ * - EstadoPartida: Estructura serializable que agrupa el estado de la partida guardada.
+ * - GestorArchivos: Administrador de archivos para lectura/escritura de logs en texto con
+ *   BufferedWriter/BufferedReader, y serializacion binaria (.dat) con ObjectOutputStream/ObjectInputStream.
  */
 package com.rpg.persistencia;
