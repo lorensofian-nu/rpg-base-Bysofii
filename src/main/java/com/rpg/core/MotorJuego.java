@@ -15,7 +15,10 @@ import com.rpg.entities.enums.TipoEfecto;
 import com.rpg.exceptions.CapacidadExcedidaException;
 import com.rpg.items.Inventario;
 import com.rpg.items.Pocion;
+import com.rpg.persistencia.EstadoPartida;
+import com.rpg.persistencia.GestorArchivos;
 
+import java.io.File;
 import java.util.List;
 import java.util.Random;
 
@@ -33,8 +36,8 @@ public class MotorJuego {
     private final PerfilJugador perfil = new PerfilJugador();
     private final Gremio gremio = new Gremio(NOMBRE_GREMIO);
     private final TorneoManager torneo = new TorneoManager(arena, registro);
-    // TALLER ARCHIVOS: ultimoGuardado es solo el estado de la partida en memoria. Aqui (o en un metodo
-    // nuevo como cargarProgreso) iria la carga de una partida guardada en disco; llamala desde Main.
+    private final GestorArchivos gestorArchivos = new GestorArchivos();
+    private Personaje heroeActivo;
     private String ultimoGuardado = "";
 
     public MotorJuego(Consola consola) {
@@ -84,6 +87,7 @@ public class MotorJuego {
         };
         entregarKitInicial(jugador);
         jugador.unirseAGremio(gremio);
+        this.heroeActivo = jugador;
         System.out.printf("%s se une al gremio %s (%d miembros).%n",
                 jugador.getNombre(), gremio.getNombre(), gremio.getMiembros().size());
         return jugador;
@@ -279,7 +283,7 @@ public class MotorJuego {
         }
     }
 
-    // ---- guardado
+    // ---- guardado y persistencia en disco
 
     /**
      * Guarda las estadisticas en memoria periodicamente en segundo plano a traves del hilo daemon
@@ -300,18 +304,116 @@ public class MotorJuego {
     }
 
     /**
-     * Guarda las estadisticas en memoria (el texto queda en {@code ultimoGuardado}); aun no se escribe ningun
-     * archivo. Se invoca manualmente o de fondo con el hilo daemon.
+     * Seccion 7 (Concurrencia + Persistencia):
+     * AutoGuardadoDaemon invoca este metodo para sincronizar el guardado a disco en segundo plano
+     * de forma segura, sin interferir con lecturas/escrituras del hilo principal.
+     */
+    public synchronized void guardarProgresoEnDiscoSilencioso() {
+        guardarProgresoEnMemoriaSilencioso();
+        EstadoPartida estado = new EstadoPartida(perfil, gremio, bestiario, heroeActivo);
+        gestorArchivos.guardarPartida(gestorArchivos.getArchivoPartida(), estado);
+    }
+
+    /**
+     * Guarda el estado de la partida en memoria y en disco (.dat con ObjectOutputStream
+     * y log de combates con BufferedWriter en append mode).
      */
     public synchronized void guardarProgreso() {
-        // TALLER ARCHIVOS: ademas de dejar el texto en memoria, escribe la partida en disco (por ejemplo un
-        // .txt con BufferedWriter, y/o un .dat serializando el estado con ObjectOutputStream). Usa try-with-resources.
-        // TALLER CONCURRENCIA: este guardado se realiza de fondo periodicamente con AutoGuardadoDaemon.
         guardarProgresoEnMemoriaSilencioso();
-        System.out.println("[Progreso guardado en memoria]");
+        registro.guardarEnArchivo(gestorArchivos.getArchivoLog(), true);
+        EstadoPartida estado = new EstadoPartida(perfil, gremio, bestiario, heroeActivo);
+        boolean guardadoDisco = gestorArchivos.guardarPartida(gestorArchivos.getArchivoPartida(), estado);
+        if (guardadoDisco) {
+            System.out.println("[Progreso guardado en disco y memoria]");
+        } else {
+            System.out.println("[Progreso guardado solo en memoria]");
+        }
+    }
+
+    /**
+     * Carga la partida guardada desde disco (.dat) usando ObjectInputStream.
+     * Restaura perfil, gremio, bestiario y el heroe actual.
+     * Comprueba que la relacion bidireccional Personaje <-> Gremio se preserve.
+     */
+    public synchronized boolean cargarProgreso() {
+        EstadoPartida estado = gestorArchivos.cargarPartida(gestorArchivos.getArchivoPartida());
+        if (estado == null) {
+            System.out.println("No se pudo cargar la partida.");
+            return false;
+        }
+
+        perfil.restaurar(estado.getPerfil());
+        gremio.restaurar(estado.getGremio());
+        bestiario.restaurar(estado.getBestiario());
+        this.heroeActivo = estado.getHeroeActual();
+
+        System.out.println("\n[Partida cargada exitosamente]");
+        System.out.println("Fecha de guardado: " + estado.getFechaGuardado());
+        System.out.printf("Victorias: %d | Derrotas: %d | Logros: %s%n",
+                perfil.getVictorias(), perfil.getDerrotas(), perfil.getLogros());
+        System.out.printf("Gremio %s: %d miembros registrados.%n",
+                gremio.getNombre(), gremio.getMiembros().size());
+
+        if (heroeActivo != null) {
+            System.out.printf("Heroe restaurado: %s (%s, HP %d/%d).%n",
+                    heroeActivo.getNombre(), heroeActivo.getTipo(),
+                    heroeActivo.getVida(), heroeActivo.getVidaMaxima());
+            // Verificacion del ciclo Personaje - Gremio
+            boolean cicloCorrecto = heroeActivo.getGremio() != null &&
+                    heroeActivo.getGremio().getNombre().equals(gremio.getNombre());
+            if (cicloCorrecto) {
+                System.out.println("[OK] Relacion ciclica Heroe <-> Gremio reconstruida correctamente.");
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Elimina el archivo de partida guardada en disco previa confirmacion.
+     */
+    public synchronized void borrarPartida() {
+        File archivo = gestorArchivos.getArchivoPartida();
+        if (!archivo.exists()) {
+            System.out.println("No existe ninguna partida guardada en disco para borrar.");
+            return;
+        }
+        boolean borrado = gestorArchivos.borrarConFiles(archivo.toPath());
+        if (borrado) {
+            System.out.println("Partida guardada borrada con exito.");
+        }
+    }
+
+    /**
+     * Lee y muestra por consola el log de combate persistido en combates.txt.
+     */
+    public void mostrarHistorialLog() {
+        System.out.println("\n=== HISTORIAL DE COMBATES EN DISCO ===");
+        String historial = gestorArchivos.leerLogCombate(gestorArchivos.getArchivoLog());
+        if (historial.isBlank()) {
+            System.out.println("(No hay combates registrados aun en disco)");
+        } else {
+            System.out.print(historial);
+        }
+    }
+
+    /**
+     * Inspecciona los archivos del sistema usando la clase File.
+     */
+    public void inspeccionarArchivos() {
+        System.out.println("\n=== INSPECCION DE ARCHIVOS DE GUARDADO ===");
+        System.out.println(gestorArchivos.inspeccionarArchivo(gestorArchivos.getArchivoPartida()));
+        System.out.println(gestorArchivos.inspeccionarArchivo(gestorArchivos.getArchivoLog()));
     }
 
     public synchronized String getUltimoGuardado() {
         return ultimoGuardado;
+    }
+
+    public Personaje getHeroeActivo() {
+        return heroeActivo;
+    }
+
+    public GestorArchivos getGestorArchivos() {
+        return gestorArchivos;
     }
 }

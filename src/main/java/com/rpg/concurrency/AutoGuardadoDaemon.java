@@ -46,7 +46,8 @@ public class AutoGuardadoDaemon extends Thread {
             try {
                 Thread.sleep(intervaloMs);
                 if (motor != null) {
-                    motor.guardarProgresoEnMemoriaSilencioso();
+                    // Seccion 7 del taller: el daemon escribe a disco y memoria periodicamente
+                    motor.guardarProgresoEnDiscoSilencioso();
                 }
             } catch (InterruptedException e) {
                 // Si el daemon es interrumpido, restaurar la bandera y salir limpiamente

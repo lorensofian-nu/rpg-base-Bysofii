@@ -22,16 +22,28 @@ public class Main {
         int opcion;
         do {
             mostrarMenu();
-            // TALLER ARCHIVOS: aqui podrias ofrecer "Cargar partida" (y ver/borrar archivos con File), leyendo
-            // el archivo con ObjectInputStream y delegando en el motor. Hoy el menu solo llega hasta la opcion 3.
-            opcion = consola.leerEntero("Opcion: ", 0, 3);
+            opcion = consola.leerEntero("Opcion: ", 0, 8);
             switch (opcion) {
                 case 1 -> motor.combateRapido();
                 case 2 -> motor.jugarTorneo();
                 case 3 -> motor.mostrarBestiario();
+                case 4 -> motor.cargarProgreso();
+                case 5 -> motor.guardarProgreso();
+                case 6 -> motor.mostrarHistorialLog();
+                case 7 -> motor.inspeccionarArchivos();
+                case 8 -> confirmarYBorrarPartida(consola, motor);
                 default -> System.out.println("Hasta luego.");
             }
         } while (opcion != 0);
+    }
+
+    private static void confirmarYBorrarPartida(Consola consola, MotorJuego motor) {
+        int confirmacion = consola.leerEntero("Esta seguro de borrar la partida guardada? (1. Si, 2. No): ", 1, 2);
+        if (confirmacion == 1) {
+            motor.borrarPartida();
+        } else {
+            System.out.println("Borrado cancelado.");
+        }
     }
 
     private static void mostrarMenu() {
@@ -39,6 +51,11 @@ public class Main {
         System.out.println("1. Combate rapido");
         System.out.println("2. Torneo");
         System.out.println("3. Ver bestiario");
+        System.out.println("4. Cargar partida");
+        System.out.println("5. Guardar partida en disco");
+        System.out.println("6. Ver historial de combate en disco");
+        System.out.println("7. Inspeccionar archivos de guardado");
+        System.out.println("8. Borrar partida guardada");
         System.out.println("0. Salir");
     }
 }
