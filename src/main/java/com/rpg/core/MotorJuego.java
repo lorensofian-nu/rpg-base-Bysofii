@@ -1,5 +1,8 @@
 package com.rpg.core;
 
+import com.rpg.concurrency.AutoGuardadoDaemon;
+import com.rpg.concurrency.GestorTurno;
+import com.rpg.concurrency.TemporizadorTurnoTask;
 import com.rpg.entities.Enemigo;
 import com.rpg.entities.EstadoEfecto;
 import com.rpg.entities.Gremio;
@@ -21,6 +24,7 @@ public class MotorJuego {
 
     private static final String NOMBRE_GREMIO = "Guardianes del Alba";
     private static final int CURACION_POCION_VIDA = 30;
+    private static final int SEGUNDOS_TURNO = 10;
 
     private final Consola consola;
     private final RegistroCombate registro = new RegistroCombate();
@@ -35,6 +39,9 @@ public class MotorJuego {
 
     public MotorJuego(Consola consola) {
         this.consola = consola;
+        // TALLER CONCURRENCIA: hilo daemon en segundo plano para auto-guardado en memoria
+        AutoGuardadoDaemon daemon = new AutoGuardadoDaemon(this, 3000);
+        daemon.start();
     }
 
     // ---- opciones del menu principal
@@ -149,6 +156,11 @@ public class MotorJuego {
             registro.agregar(FormatoCombate.resumen(jugador));
             registro.agregar(FormatoCombate.resumen(enemigo));
             Accion accion = pedirAccion();
+            if (accion == null) {
+                // TALLER CONCURRENCIA: El tiempo se agoto antes de elegir accion; el turno se pierde
+                registro.agregar("%s pierde el turno por tiempo agotado.", jugador.getNombre());
+                return false;
+            }
             if (accion == Accion.HUIR) {
                 return true;
             }
@@ -169,13 +181,26 @@ public class MotorJuego {
     }
 
     /**
-     * Pide la accion al jugador y se queda esperando hasta que escriba algo.
+     * Pide la accion al jugador supervisado por un temporizador concurrente en segundo plano.
      */
     private Accion pedirAccion() {
-        // TALLER CONCURRENCIA: esta lectura bloquea el programa sin limite de tiempo.
-        // Aqui debe entrar el temporizador de turno con su callback.
-        System.out.println("1. Atacar  2. Habilidad especial  3. Usar pocion  4. Ver estado  0. Huir");
-        int opcion = consola.leerEntero("Accion: ", 0, 4);
+        // TALLER CONCURRENCIA: GestorTurno crea el Thread con TemporizadorTurnoTask y llama a .start()
+        GestorTurno gestor = new GestorTurno(SEGUNDOS_TURNO);
+        gestor.iniciar(() -> {
+            System.out.println("\n[!] Tiempo agotado para elegir accion!");
+        });
+
+        System.out.printf("1. Atacar  2. Habilidad especial  3. Usar pocion  4. Ver estado  0. Huir  (Tiempo: %ds)%n", SEGUNDOS_TURNO);
+        Integer opcion = consola.leerEnteroConTemporizador("Accion: ", 0, 4, gestor);
+
+        // Si el tiempo se agoto antes de que el jugador elija, el turno se pierde
+        if (opcion == null || gestor.haExpirado()) {
+            return null;
+        }
+
+        // Si el jugador responde a tiempo, cancelar el temporizador con .interrupt() (sin banderas booleanas manuales)
+        gestor.cancelar();
+
         return switch (opcion) {
             case 1 -> Accion.ATACAR;
             case 2 -> Accion.ESPECIAL;
@@ -216,6 +241,10 @@ public class MotorJuego {
     // ---- resultado del combate
 
     private void cerrarCombate(Personaje jugador, Enemigo enemigo, boolean huyo) {
+        // TALLER CONCURRENCIA: Al terminar el combate, todos los hilos de efectos continuos se interrumpen limpiamente
+        jugador.detenerEfectos();
+        enemigo.detenerEfectos();
+
         if (huyo) {
             registro.agregar("%s huye del combate.", jugador.getNombre());
         } else if (jugador.estaVivo()) {
@@ -253,13 +282,10 @@ public class MotorJuego {
     // ---- guardado
 
     /**
-     * Guarda las estadisticas en memoria (el texto queda en {@code ultimoGuardado}); aun no se escribe ningun
-     * archivo. Hoy solo se invoca al terminar una pelea.
+     * Guarda las estadisticas en memoria periodicamente en segundo plano a traves del hilo daemon
+     * sin interrumpir al usuario con mensajes en consola.
      */
-    public void guardarProgreso() {
-        // TALLER ARCHIVOS: ademas de dejar el texto en memoria, escribe la partida en disco (por ejemplo un
-        // .txt con BufferedWriter, y/o un .dat serializando el estado con ObjectOutputStream). Usa try-with-resources.
-        // TALLER CONCURRENCIA: este guardado es manual. Debera hacerse solo, de fondo, mientras se juega.
+    public synchronized void guardarProgresoEnMemoriaSilencioso() {
         StringBuilder contenido = new StringBuilder();
         contenido.append("=== PARTIDA RPG ===").append(System.lineSeparator());
         contenido.append("Victorias: ").append(perfil.getVictorias()).append(System.lineSeparator());
@@ -271,10 +297,21 @@ public class MotorJuego {
         contenido.append(System.lineSeparator()).append("--- Ultimo combate ---").append(System.lineSeparator());
         contenido.append(registro.getTexto());
         ultimoGuardado = contenido.toString();
+    }
+
+    /**
+     * Guarda las estadisticas en memoria (el texto queda en {@code ultimoGuardado}); aun no se escribe ningun
+     * archivo. Se invoca manualmente o de fondo con el hilo daemon.
+     */
+    public synchronized void guardarProgreso() {
+        // TALLER ARCHIVOS: ademas de dejar el texto en memoria, escribe la partida en disco (por ejemplo un
+        // .txt con BufferedWriter, y/o un .dat serializando el estado con ObjectOutputStream). Usa try-with-resources.
+        // TALLER CONCURRENCIA: este guardado se realiza de fondo periodicamente con AutoGuardadoDaemon.
+        guardarProgresoEnMemoriaSilencioso();
         System.out.println("[Progreso guardado en memoria]");
     }
 
-    public String getUltimoGuardado() {
+    public synchronized String getUltimoGuardado() {
         return ultimoGuardado;
     }
 }
