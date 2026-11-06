@@ -187,58 +187,58 @@ en `MotorJuego`, `RegistroCombate`, `Main` y las clases del dominio.
 
 ### Antes de empezar
 
-- [ ] El proyecto compila y ejecutas `Main` sin errores.
-- [ ] Localizaste los comentarios `TALLER ARCHIVOS` y entiendes que el guardado actual es solo en memoria.
+- [x] El proyecto compila y ejecutas `Main` sin errores.
+- [x] Localizaste los comentarios `TALLER ARCHIVOS` y entiendes que el guardado actual es solo en memoria.
 
 ### Seccion 1: Clase `File`
 
-- [ ] Crear un `File` con una ruta relativa y otro con una ruta absoluta (`getAbsolutePath()`), y explicar la diferencia.
-- [ ] Usar `exists()`, `length()` y `getName()` para mostrar informacion de un archivo de partida o de log.
-- [ ] Usar `createNewFile()` y manejar su `IOException`.
-- [ ] Crear la carpeta `partidas/` si no existe (`mkdirs()`), sin fallar si ya existe.
+- [x] Crear un `File` con una ruta relativa y otro con una ruta absoluta (`getAbsolutePath()`), y explicar la diferencia.
+- [x] Usar `exists()`, `length()` y `getName()` para mostrar informacion de un archivo de partida o de log.
+- [x] Usar `createNewFile()` y manejar su `IOException`.
+- [x] Crear la carpeta `partidas/` si no existe (`mkdirs()`), sin fallar si ya existe.
 
 ### Seccion 2: Escritura (`BufferedWriter` + `FileWriter`)
 
-- [ ] Volcar el log de `RegistroCombate` a un `.txt` con `BufferedWriter` + `FileWriter`.
-- [ ] Escribir con `newLine()` en vez de concatenar saltos de linea a mano.
-- [ ] Usar `FileWriter(file, true)` para **agregar** (append) sin borrar los combates anteriores, y comprobar la diferencia con el modo por defecto, que sobrescribe.
-- [ ] Hacer `flush()` / cerrar el escritor para que el contenido llegue al disco.
+- [x] Volcar el log de `RegistroCombate` a un `.txt` con `BufferedWriter` + `FileWriter`.
+- [x] Escribir con `newLine()` en vez de concatenar saltos de linea a mano.
+- [x] Usar `FileWriter(file, true)` para **agregar** (append) sin borrar los combates anteriores, y comprobar la diferencia con el modo por defecto, que sobrescribe.
+- [x] Hacer `flush()` / cerrar el escritor para que el contenido llegue al disco.
 
 ### Seccion 3: Lectura (`BufferedReader` + `FileReader`)
 
-- [ ] Leer el log con `BufferedReader` + `FileReader` usando `while ((linea = lector.readLine()) != null)`.
-- [ ] Mostrar por consola el historial leido (por ejemplo, una opcion nueva en el menu de `Main`).
-- [ ] Capturar `FileNotFoundException` cuando el archivo aun no existe y mostrar un mensaje claro (sin tildes).
+- [x] Leer el log con `BufferedReader` + `FileReader` usando `while ((linea = lector.readLine()) != null)`.
+- [x] Mostrar por consola el historial leido (por ejemplo, una opcion nueva en el menu de `Main`).
+- [x] Capturar `FileNotFoundException` cuando el archivo aun no existe y mostrar un mensaje claro (sin tildes).
 
 ### Seccion 4: Borrado
 
-- [ ] Borrar un archivo con `File.delete()` y revisar el `boolean` que devuelve.
-- [ ] Borrar con `Files.deleteIfExists(Path)` y explicar la diferencia con `File.delete()`.
-- [ ] Ofrecer en el menu una opcion para borrar la partida guardada, confirmando antes con el jugador.
+- [x] Borrar un archivo con `File.delete()` y revisar el `boolean` que devuelve.
+- [x] Borrar con `Files.deleteIfExists(Path)` y explicar la diferencia con `File.delete()`.
+- [x] Ofrecer en el menu una opcion para borrar la partida guardada, confirmando antes con el jugador.
 
 ### Seccion 5: Serializacion (`Serializable`, `ObjectOutputStream`, `ObjectInputStream`)
 
-- [ ] Hacer `Serializable` las clases del dominio que forman la partida: `Personaje` (y `Guerrero`, `Mago`, `Enemigo`), `Inventario`, `Pocion`, `Arma`, `Gremio`, `EstadoEfecto`, `PerfilJugador`.
-- [ ] Declarar `serialVersionUID` en cada clase serializable y explicar para que sirve.
-- [ ] Marcar con `transient` al menos un campo que no deba guardarse y comprobar que vuelve con su valor por defecto al cargar.
-- [ ] Guardar la partida con `ObjectOutputStream.writeObject(...)` en un `.dat`.
-- [ ] Cargar la partida con `ObjectInputStream.readObject()`, con el cast al tipo correcto.
-- [ ] Provocar y resolver una `NotSerializableException` por un objeto anidado que no es `Serializable`.
-- [ ] Comprobar que despues de cargar, el `Gremio` y sus `Personaje` siguen relacionados (el ciclo `Personaje` - `Gremio` se serializa bien).
-- [ ] Agregar una opcion "Cargar partida" y comprobar que el juego continua con el estado guardado.
+- [x] Hacer `Serializable` las clases del dominio que forman la partida: `Personaje` (y `Guerrero`, `Mago`, `Enemigo`), `Inventario`, `Pocion`, `Arma`, `Gremio`, `EstadoEfecto`, `PerfilJugador`.
+- [x] Declarar `serialVersionUID` en cada clase serializable y explicar para que sirve.
+- [x] Marcar con `transient` al menos un campo que no deba guardarse y comprobar que vuelve con su valor por defecto al cargar.
+- [x] Guardar la partida con `ObjectOutputStream.writeObject(...)` en un `.dat`.
+- [x] Cargar la partida con `ObjectInputStream.readObject()`, con el cast al tipo correcto.
+- [x] Provocar y resolver una `NotSerializableException` por un objeto anidado que no es `Serializable`.
+- [x] Comprobar que despues de cargar, el `Gremio` y sus `Personaje` siguen relacionados (el ciclo `Personaje` - `Gremio` se serializa bien).
+- [x] Agregar una opcion "Cargar partida" y comprobar que el juego continua con el estado guardado.
 
 ### Seccion 6: `try-with-resources` y excepciones
 
-- [ ] Todos los flujos (`BufferedWriter`, `BufferedReader`, `ObjectOutputStream`, `ObjectInputStream`) se abren con `try-with-resources` (`AutoCloseable`); ningun `close()` manual.
-- [ ] Manejas `IOException`, `FileNotFoundException` (la mas especifica va primero), `ClassNotFoundException` y `NotSerializableException` con mensajes utiles.
-- [ ] Ningun `catch` esta vacio ni solo imprime la traza.
-- [ ] El juego no se cae si el archivo no existe, esta corrupto o no se puede escribir.
+- [x] Todos los flujos (`BufferedWriter`, `BufferedReader`, `ObjectOutputStream`, `ObjectInputStream`) se abren con `try-with-resources` (`AutoCloseable`); ningun `close()` manual.
+- [x] Manejas `IOException`, `FileNotFoundException` (la mas especifica va primero), `ClassNotFoundException` y `NotSerializableException` con mensajes utiles.
+- [x] Ningun `catch` esta vacio ni solo imprime la traza.
+- [x] El juego no se cae si el archivo no existe, esta corrupto o no se puede escribir.
 
 ### Seccion 7: Integracion con concurrencia (si ya hiciste el taller anterior)
 
-- [ ] `AutoGuardadoDaemon` escribe a disco (ya no solo en memoria) cada cierto intervalo.
-- [ ] Protegiste la escritura y la lectura del mismo archivo con `synchronized` (sobre un mismo objeto candado o metodos de una clase compartida), para que el daemon y el hilo principal no lo accedan a la vez.
-- [ ] Comprobaste que, al cerrar el juego, el hilo daemon no deja un archivo a medio escribir.
+- [x] `AutoGuardadoDaemon` escribe a disco (ya no solo en memoria) cada cierto intervalo.
+- [x] Protegiste la escritura y la lectura del mismo archivo con `synchronized` (sobre un mismo objeto candado o metodos de una clase compartida), para que el daemon y el hilo principal no lo accedan a la vez.
+- [x] Comprobaste que, al cerrar el juego, el hilo daemon no deja un archivo a medio escribir.
 
 ## Investigacion obligatoria
 
@@ -254,9 +254,9 @@ por tu cuenta y dejar evidencia en el proyecto:
 
 ## Investigacion obligatoria (taller de archivos)
 
-- [ ] **`FileWriter` vs `Files.writeString`.** Explica en 2 o 3 lineas la diferencia (flujo con buffer que
+- [x] **`FileWriter` vs `Files.writeString`.** Explica en 2 o 3 lineas la diferencia (flujo con buffer que
   abres y cierras tu, frente a una sola llamada de NIO que escribe todo el texto) y cuando usarias cada uno.
-- [ ] **Seguridad de `Serializable`.** Explica por que no se debe deserializar (`readObject`) datos que no
+- [x] **Seguridad de `Serializable`.** Explica por que no se debe deserializar (`readObject`) datos que no
   son de confianza: un archivo manipulado puede ejecutar codigo o consumir recursos al reconstruir objetos.
   Anota que alternativas existen (por ejemplo JSON o un formato de texto propio).
 
