@@ -13,7 +13,7 @@ import java.util.Scanner;
 
 /**
  * Vista (View) en la arquitectura MVC para la gestion de heroes.
- * Regla MVC: la View nunca toca la base de datos ni importa java.sql.
+ * Regla MVC: la View nunca toca la base de datos ni interactua con JDBC.
  * Se comunica exclusivamente a traves de HeroeController y presenta datos por consola.
  */
 public class HeroeUI {

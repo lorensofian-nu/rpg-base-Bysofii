@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Controlador de la arquitectura MVC para la gestion de heroes.
  * Valida reglas de negocio, coordina con HeroeDAO y retorna mensajes descriptivos a la Vista.
- * No contiene codigo de acceso a datos JDBC (java.sql prohibido en el controlador).
+ * No contiene codigo de acceso a datos JDBC (JDBC prohibido en el controlador).
  */
 public class HeroeController {
 
