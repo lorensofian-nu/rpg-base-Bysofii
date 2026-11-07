@@ -61,6 +61,31 @@ public class MotorJuego {
         guardarProgreso();
     }
 
+    /**
+     * Unidad 5.2 (Integracion MVC + BD):
+     * Permite ejecutar un combate rapido utilizando un heroe cargado desde MySQL.
+     */
+    public void combateRapidoConPersonaje(Personaje jugador) {
+        if (jugador == null) {
+            System.out.println("No se especifico ningun combatiente.");
+            return;
+        }
+        registro.limpiar();
+        entregarKitInicial(jugador);
+        jugador.unirseAGremio(gremio);
+        this.heroeActivo = jugador;
+        System.out.printf("%s se une al combate como miembro de %s (%d miembros).%n",
+                jugador.getNombre(), gremio.getNombre(), gremio.getMiembros().size());
+
+        Enemigo enemigo = elegirEnemigo();
+        registro.agregar("%n=== %s vs %s ===", jugador.getNombre(), enemigo.getNombre());
+
+        boolean huyo = combatir(jugador, enemigo);
+
+        cerrarCombate(jugador, enemigo, huyo);
+        guardarProgreso();
+    }
+
     public void jugarTorneo() {
         registro.limpiar();
         Personaje campeon = torneo.jugarTorneo();
